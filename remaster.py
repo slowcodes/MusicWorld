@@ -4,6 +4,7 @@ import subprocess
 import os
 from demucs.apply import apply_model
 from demucs.pretrained import get_model
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load Demucs AI model
 model = get_model(name='htdemucs')  # High-quality model for remastering
