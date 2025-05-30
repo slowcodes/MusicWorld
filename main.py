@@ -17,17 +17,21 @@ os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 UPLOAD_DIR = "uploaded_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # ["http://localhost:4200"],  # Frontend origin
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
+    return {"message": "Hello World"}
+
+
+@app.get("/all-remastered")
+async def smoot():
     return {"message": "Hello World"}
 
 
