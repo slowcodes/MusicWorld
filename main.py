@@ -52,7 +52,7 @@ async def upload_audio(file: UploadFile = File(...)):
         audio_path="song.wav",
         reference_path="reference_track.wav",
         bit_depth="24",
-        log_fn=print
+        show_progress=True
     )
     # Return the processed file
     # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
