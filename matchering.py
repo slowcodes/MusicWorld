@@ -9,7 +9,7 @@ def matchering_remaster_audio(
         audio_path: Union[str, Path],
         reference_path: Union[str, Path],
         bit_depth: str = "24",
-        log_fn=None
+        show_progress: bool = True
 ) -> Path:
     """
     Remaster an audio file using matchering v3+ and save as 'processed/remastered.wav'.
@@ -25,9 +25,6 @@ def matchering_remaster_audio(
     processed_dir.mkdir(exist_ok=True)
     output_file = processed_dir / "remastered.wav"
 
-    if log_fn is not None:
-        mg.log(log_fn)
-
     tmpdir = Path(tempfile.mkdtemp(prefix="matchering_"))
 
     try:
@@ -39,7 +36,8 @@ def matchering_remaster_audio(
                 "path": str(output_file),
                 "bitdepth": bit_depth
             }],
-            tmpdir=str(tmpdir)
+            tmpdir=str(tmpdir),
+            progress=show_progress  # v3+ way to show progress in console
         )
 
         if not output_file.exists():
