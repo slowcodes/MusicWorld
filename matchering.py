@@ -12,41 +12,17 @@ def matchering_remaster_audio(
         log_fn=None
 ) -> Path:
     """
-    Remaster an audio file using matchering and save as 'processed/remastered.wav'.
-
-    Parameters
-    ----------
-    audio_path : str | Path
-        Path to the audio file to remaster (target).
-    reference_path : str | Path
-        Path to the reference mastered track.
-    bit_depth : str, default "24"
-        Output bit depth: one of "16", "24", or "32f".
-    log_fn : callable, optional
-        Function to receive log messages (e.g., print).
-
-    Returns
-    -------
-    Path
-        Path to the remastered audio file.
+    Remaster an audio file using matchering v3+ and save as 'processed/remastered.wav'.
     """
     audio_path = Path(audio_path).expanduser().resolve()
     reference_path = Path(reference_path).expanduser().resolve()
 
-    bitdepth_map = {
-        "16": mg.pcm16,
-        "24": mg.pcm24,
-        "32f": mg.pcm32f
-    }
+    valid_bit_depths = {"16", "24", "32f"}
+    if bit_depth not in valid_bit_depths:
+        raise ValueError(f"bit_depth must be one of {valid_bit_depths}")
 
-    if bit_depth not in bitdepth_map:
-        raise ValueError("bit_depth must be one of '16', '24', or '32f'")
-
-    # Ensure processed folder exists
     processed_dir = audio_path.parent / "processed"
     processed_dir.mkdir(exist_ok=True)
-
-    # Always save as processed/remastered.wav
     output_file = processed_dir / "remastered.wav"
 
     if log_fn is not None:
@@ -58,7 +34,11 @@ def matchering_remaster_audio(
         mg.process(
             target=str(audio_path),
             reference=str(reference_path),
-            results=[bitdepth_map[bit_depth](str(output_file))],
+            results=[{
+                "type": "wav",
+                "path": str(output_file),
+                "bitdepth": bit_depth
+            }],
             tmpdir=str(tmpdir)
         )
 
