@@ -3,10 +3,9 @@ from fastapi.responses import FileResponse
 import shutil
 import os
 from pydub import AudioSegment
-import torchaudio
 from starlette.middleware.cors import CORSMiddleware
 
-from matchering import matchering_remaster_audio
+from rematering_libs.matchering import matchering_remaster_audio
 
 app = FastAPI()
 
