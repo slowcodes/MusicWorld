@@ -6,6 +6,8 @@ from pydub import AudioSegment
 import torchaudio
 from starlette.middleware.cors import CORSMiddleware
 
+from matchering import matchering_remaster_audio
+
 app = FastAPI()
 
 UPLOAD_FOLDER = "uploads"
@@ -19,7 +21,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://13.61.6.255:4200"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -42,11 +44,19 @@ async def upload_audio(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Process / "Remaster" the file
+    # Process / "Remaster" the file with pydub
     processed_path = await remaster_audio(file_path)
 
-    return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
-
+    # Remaster file with matchring
+    output_path = matchering_remaster_audio(
+        audio_path="song.wav",
+        reference_path="reference_track.wav",
+        bit_depth="24",
+        log_fn=print
+    )
+    # Return the processed file
+    # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+    return FileResponse(processed_path, media_type="audio/wav", filename=output_path.name)
 
 async def remaster_audio(file_path: str) -> str:
     # Load audio using pydub

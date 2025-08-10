@@ -3,3 +3,5 @@ torch
 torchaudio
 demucs
 fastapi[all]
+pedalboard
+soundfile
