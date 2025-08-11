@@ -1,5 +1,4 @@
 from pathlib import Path
-import tempfile
 import shutil
 import matchering as mg
 from typing import Union
@@ -12,7 +11,8 @@ def matchering_remaster_audio(
         show_progress: bool = True
 ) -> Path:
     """
-    Remaster an audio file using matchering v3+ and save as 'processed/remastered.wav'.
+    Remaster an audio file using Matchering v2.0.6 (without tmpdir arg).
+    Saves as 'processed/remastered.wav'.
     """
     audio_path = Path(audio_path).expanduser().resolve()
     reference_path = Path(reference_path).expanduser().resolve()
@@ -25,25 +25,18 @@ def matchering_remaster_audio(
     processed_dir.mkdir(exist_ok=True)
     output_file = processed_dir / "remastered.wav"
 
-    tmpdir = Path(tempfile.mkdtemp(prefix="matchering_"))
+    mg.process(
+        target=str(audio_path),
+        reference=str(reference_path),
+        results=[{
+            "type": "wav",
+            "path": str(output_file),
+            "bitdepth": bit_depth
+        }],
+        progress=show_progress
+    )
 
-    try:
-        mg.process(
-            target=str(audio_path),
-            reference=str(reference_path),
-            results=[{
-                "type": "wav",
-                "path": str(output_file),
-                "bitdepth": bit_depth
-            }],
-            tmpdir=str(tmpdir),
-            progress=show_progress  # v3+ way to show progress in console
-        )
+    if not output_file.exists():
+        raise RuntimeError(f"Matchering finished but no output file created: {output_file}")
 
-        if not output_file.exists():
-            raise RuntimeError(f"Matchering finished but no output file created: {output_file}")
-
-        return output_file
-
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+    return output_file

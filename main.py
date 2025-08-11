@@ -44,18 +44,19 @@ async def upload_audio(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     # Process / "Remaster" the file with pydub
-    processed_path = await remaster_audio(file_path)
+    # processed_path = await remaster_audio(file_path)
 
     # Remaster file with matchring
-    output_path = matchering_remaster_audio(
+    processed_path = matchering_remaster_audio(
         audio_path="song.wav",
-        reference_path="reference_track.wav",
+        reference_path="ref.wav",
         bit_depth="24",
         show_progress=True
     )
+    print(f"Remastered file saved at: {processed_path}")
     # Return the processed file
     # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
-    return FileResponse(processed_path, media_type="audio/wav", filename=output_path)
+    return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
 
 async def remaster_audio(file_path: str) -> str:
     # Load audio using pydub
