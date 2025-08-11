@@ -51,9 +51,10 @@ async def upload_audio(file: UploadFile = File(...)):
         file_path
     )
     print(f"Remastered file saved at: {processed_path}")
-    # Return the processed file
+
     # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
     return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+
 
 async def remaster_audio(file_path: str) -> str:
     # Load audio using pydub
