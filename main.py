@@ -47,7 +47,7 @@ async def upload_audio(file: UploadFile = File(...)):
     # processed_path = await remaster_audio(file_path)
 
     # Remaster file with matchring
-    processed_path = matchering_remaster_audio(
+    processed_path = remaster_audio_with_matchering(
         file_path
     )
     print(f"Remastered file saved at: {processed_path}")
@@ -68,3 +68,26 @@ async def remaster_audio(file_path: str) -> str:
     normalized.export(processed_path, format="wav")
 
     return processed_path
+
+
+async def remaster_audio_with_matchering(file_path: str) -> str:
+    """
+    Remasters an audio file using matchering v2.0.6
+    and saves it as 'processed/remastered.wav'.
+
+    Args:
+        file_path (str): Path to the audio file to be remastered.
+
+    Returns:
+        str: Path to the remastered audio file.
+    """
+    # Ensure 'processed' directory exists
+    os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
+    # Output file path
+    output_file_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
+
+    # Perform mastering
+    matchering_remaster_audio(file_path)
+
+    return output_file_path
