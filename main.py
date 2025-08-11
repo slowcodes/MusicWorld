@@ -4,8 +4,8 @@ import shutil
 import os
 from pydub import AudioSegment
 from starlette.middleware.cors import CORSMiddleware
-
-from rematering_libs.matchering import matchering_remaster_audio
+import matchering as mg
+# from rematering_libs.matchering import matchering_remaster_audio
 
 app = FastAPI()
 
@@ -47,7 +47,7 @@ async def upload_audio(file: UploadFile = File(...)):
     # processed_path = await remaster_audio(file_path)
 
     # Remaster file with matchring
-    processed_path = remaster_audio_with_matchering(
+    processed_path = matchering_remaster_audio(
         file_path
     )
     print(f"Remastered file saved at: {processed_path}")
@@ -70,24 +70,36 @@ async def remaster_audio(file_path: str) -> str:
     return processed_path
 
 
-async def remaster_audio_with_matchering(file_path: str) -> str:
+async def matchering_remaster_audio(input_audio_path):
     """
-    Remasters an audio file using matchering v2.0.6
-    and saves it as 'processed/remastered.wav'.
+    Remasters an audio file using matchering library v2.0.6.
 
     Args:
-        file_path (str): Path to the audio file to be remastered.
+        input_audio_path (str): Path to the input audio file to be remastered.
 
     Returns:
-        str: Path to the remastered audio file.
+        str: Path to the remastered audio file if successful, None otherwise.
     """
-    # Ensure 'processed' directory exists
-    os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+    # Create processed directory if it doesn't exist
+    processed_dir = "processed"
+    os.makedirs(processed_dir, exist_ok=True)
 
     # Output file path
-    output_file_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
+    output_path = os.path.join(processed_dir, "remastered.wav")
 
-    # Perform mastering
-    matchering_remaster_audio(file_path)
+    try:
+        # Load the target (input) audio
+        target = mg.load(target_path=input_audio_path)
 
-    return output_file_path
+        # Process the audio (basic remastering with default settings)
+        mg.process(
+            target=target,
+            output=output_path
+        )
+
+        print(f"Audio successfully remastered and saved to: {output_path}")
+        return output_path
+
+    except Exception as e:
+        print(f"Error during audio remastering: {str(e)}")
+        return None
