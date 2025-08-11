@@ -1,5 +1,4 @@
 from pathlib import Path
-import shutil
 import matchering as mg
 from typing import Union
 
@@ -7,12 +6,11 @@ from typing import Union
 def matchering_remaster_audio(
         audio_path: Union[str, Path],
         reference_path: Union[str, Path],
-        bit_depth: str = "24",
-        show_progress: bool = True
+        bit_depth: str = "24"
 ) -> Path:
     """
-    Remaster an audio file using Matchering v2.0.6 (without tmpdir arg).
-    Saves as 'processed/remastered.wav'.
+    Remaster an audio file using Matchering v2.0.6 minimal API.
+    Saves output as 'processed/remastered.wav'.
     """
     audio_path = Path(audio_path).expanduser().resolve()
     reference_path = Path(reference_path).expanduser().resolve()
@@ -32,8 +30,7 @@ def matchering_remaster_audio(
             "type": "wav",
             "path": str(output_file),
             "bitdepth": bit_depth
-        }],
-        progress=show_progress
+        }]
     )
 
     if not output_file.exists():
