@@ -9,15 +9,19 @@ def matchering_remaster_audio(
         bit_depth: str = "24"
 ) -> Path:
     """
-    Remaster an audio file using Matchering v2.0.6 minimal API.
+    Remaster an audio file using Matchering v2.0.6 (old API style).
     Saves output as 'processed/remastered.wav'.
     """
     audio_path = Path(audio_path).expanduser().resolve()
     reference_path = Path(reference_path).expanduser().resolve()
 
-    valid_bit_depths = {"16", "24", "32f"}
-    if bit_depth not in valid_bit_depths:
-        raise ValueError(f"bit_depth must be one of {valid_bit_depths}")
+    bitdepth_map = {
+        "16": mg.pcm16,
+        "24": mg.pcm24,
+        "32f": mg.pcm32f
+    }
+    if bit_depth not in bitdepth_map:
+        raise ValueError(f"bit_depth must be one of {set(bitdepth_map.keys())}")
 
     processed_dir = audio_path.parent / "processed"
     processed_dir.mkdir(exist_ok=True)
@@ -26,11 +30,7 @@ def matchering_remaster_audio(
     mg.process(
         target=str(audio_path),
         reference=str(reference_path),
-        results=[{
-            "type": "wav",
-            "path": str(output_file),
-            "bitdepth": bit_depth
-        }]
+        results=[bitdepth_map[bit_depth](str(output_file))]
     )
 
     if not output_file.exists():
