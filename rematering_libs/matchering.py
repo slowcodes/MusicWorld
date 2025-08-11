@@ -1,39 +1,30 @@
-from pathlib import Path
+import os
 import matchering as mg
-from typing import Union
 
 
-def matchering_remaster_audio(
-        audio_path: Union[str, Path],
-        reference_path: Union[str, Path],
-        bit_depth: str = "24"
-) -> Path:
+def matchering_remaster_audio(input_audio_path: str):
     """
-    Remaster an audio file using Matchering v2.0.6 (old API style).
-    Saves output as 'processed/remastered.wav'.
+    Remasters an audio file using matchering v2.0.6
+    and saves it as 'processed/remastered.wav'.
+
+    Args:
+        input_audio_path (str): Path to the audio file to be remastered.
     """
-    audio_path = Path(audio_path).expanduser().resolve()
-    reference_path = Path(reference_path).expanduser().resolve()
 
-    bitdepth_map = {
-        "16": mg.pcm16,
-        "24": mg.pcm24,
-        "32f": mg.pcm32f
-    }
-    if bit_depth not in bitdepth_map:
-        raise ValueError(f"bit_depth must be one of {set(bitdepth_map.keys())}")
+    # Ensure 'processed' directory exists
+    output_dir = "processed"
+    os.makedirs(output_dir, exist_ok=True)
 
-    processed_dir = audio_path.parent / "processed"
-    processed_dir.mkdir(exist_ok=True)
-    output_file = processed_dir / "remastered.wav"
+    # Output file path
+    output_file_path = os.path.join(output_dir, "remastered.wav")
 
+    # Perform mastering
+    # Here, we use the input audio itself as both the target and reference
+    # For better results, replace `reference` with a high-quality reference track
     mg.process(
-        target=str(audio_path),
-        reference=str(reference_path),
-        results=[bitdepth_map[bit_depth](str(output_file))]
+        target=input_audio_path,
+        reference=input_audio_path,  # You can replace with a reference track
+        output=output_file_path
     )
 
-    if not output_file.exists():
-        raise RuntimeError(f"Matchering finished but no output file created: {output_file}")
-
-    return output_file
+    print(f"Remastered audio saved at: {output_file_path}")

@@ -48,9 +48,7 @@ async def upload_audio(file: UploadFile = File(...)):
 
     # Remaster file with matchring
     processed_path = matchering_remaster_audio(
-        audio_path=file_path,
-        reference_path="ref.wav",
-        bit_depth="24",
+        audio_path=file_path
     )
     print(f"Remastered file saved at: {processed_path}")
     # Return the processed file
