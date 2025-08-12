@@ -90,7 +90,6 @@ def matchering_remaster_audio(input_audio_path: str) -> str:
             target=input_audio_path,  # Your input file
             results=output_path,  # Output file
             reference=None,  # Must be explicitly None
-            reference2=None  # Must be explicitly None
         )
 
         return output_path
