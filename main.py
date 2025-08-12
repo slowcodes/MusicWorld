@@ -11,6 +11,7 @@ import soundfile as sf
 from pathlib import Path
 
 from libs.pedalboard_impl import pedalboard_remaster_audio
+from libs.pydub_impl import remaster_audio_with_pydub
 
 # from libs.matchering import matchering_remaster_audio
 
@@ -32,7 +33,6 @@ app.add_middleware(
 )
 
 import logging
-from pydub import AudioSegment
 import uuid
 import traceback
 
@@ -63,7 +63,16 @@ async def upload_and_remaster(file: UploadFile = File(...)):
             buffer.write(contents)
 
         # Process audio
-        success = pedalboard_remaster_audio(upload_path, output_path)
+        # success = pedalboard_remaster_audio(upload_path, output_path)
+
+        success = remaster_audio_with_pydub(
+            upload_path,
+            output_path,
+            target_loudness=-12.0,  # Slightly louder than streaming standard
+            compression_ratio=3.0,  # More transparent compression
+            highpass_cutoff=60,  # Less aggressive low-end cut
+            reverb_dryness=0.9  # Very subtle reverb
+        )
         if not success:
             raise HTTPException(500, "Audio remastering failed")
 
