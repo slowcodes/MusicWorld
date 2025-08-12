@@ -80,16 +80,15 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    Proper implementation for Matchering 2.0.6 API
+    Working implementation for Matchering 2.0.6
     """
     try:
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # Correct Matchering 2.0.6 syntax:
+        # EXACT CORRECT SYNTAX for v2.0.6:
         mg.process(
-            target=input_audio_path,  # Your input file
-            results=output_path,  # Output file (plural 'results')
-            quiet=True  # Optional: suppress console output
+            input_audio_path,  # First positional argument (input)
+            output_path  # Second positional argument (output)
         )
 
         print(f"✅ Successfully remastered: {output_path}")
