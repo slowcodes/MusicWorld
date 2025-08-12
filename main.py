@@ -83,46 +83,64 @@ async def remaster_audio(file_path: str) -> str:
     return processed_path
 
 
-def matchering_remaster_audio(input_audio_path: str) -> str:
-    """
-    Complete implementation with full error handling
-    """
+def validate_wav_file(file_path: str) -> bool:
+    """Verify the WAV file meets Matchering's requirements"""
     try:
-        # Create processed directory if needed
-        os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+        # Check basic file properties
+        if not os.path.exists(file_path):
+            return False
 
+        if os.path.getsize(file_path) == 0:
+            return False
+
+        # Verify audio properties using soundfile
+        import soundfile as sf
+        with sf.SoundFile(file_path) as audio:
+            if audio.samplerate != 44100:
+                raise ValueError(f"Invalid sample rate: {audio.samplerate} (needs 44100)")
+            if audio.channels != 2:
+                raise ValueError(f"Invalid channels: {audio.channels} (needs stereo)")
+            if audio.subtype != 'PCM_16':
+                print(f"Warning: PCM_16 is recommended, found {audio.subtype}")
+
+        return True
+    except Exception as e:
+        print(f"WAV validation failed: {str(e)}")
+        return False
+
+
+def matchering_remaster_audio(input_audio_path: str) -> str:
+    """Optimized processing for WAV files"""
+    try:
+        # 1. Validate input WAV
+        if not validate_wav_file(input_audio_path):
+            raise ValueError("Invalid WAV file format")
+
+        # 2. Prepare output
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
+        if os.path.exists(output_path):
+            os.remove(output_path)
 
-        # Verify input file exists and is valid
-        if not os.path.exists(input_audio_path):
-            raise ValueError("Input file does not exist")
-
-        if os.path.getsize(input_audio_path) == 0:
-            raise ValueError("Input file is empty")
-
-        # Process with error context
+        # 3. Process with error handling
         try:
             mg.process(
-                input_audio_path,  # Input file
+                input_audio_path,  # Original WAV file
                 output_path,  # Output file
-                None  # Reference (None for no reference)
+                None  # No reference
             )
         except Exception as e:
-            raise RuntimeError(f"Matchering processing failed: {str(e)}")
+            raise RuntimeError(f"Processing error: {str(e)}")
 
-        # Verify output was created
+        # 4. Validate output
         if not os.path.exists(output_path):
-            raise RuntimeError("Output file was not created")
-
+            raise RuntimeError("No output file created")
         if os.path.getsize(output_path) == 0:
-            os.remove(output_path)
-            raise RuntimeError("Output file is empty")
+            raise RuntimeError("Empty output file")
 
         return output_path
 
     except Exception as e:
         print(f"Remastering error: {str(e)}")
-        # Clean up failed output file if exists
         if 'output_path' in locals() and os.path.exists(output_path):
             os.remove(output_path)
         return None
