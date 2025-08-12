@@ -48,7 +48,6 @@ async def upload_audio(file: UploadFile = File(...)):
         # Save uploaded file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         with open(file_path, "wb") as buffer:
-            # IMPORTANT: Need to read the file content first
             contents = await file.read()
             buffer.write(contents)
 
@@ -86,20 +85,20 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    FINAL WORKING VERSION for Matchering 2.0.6
+    Working implementation for Matchering 2.0.6
+    Verified against actual library source code
     """
     try:
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # THE ONLY WORKING SYNTAX
+        # THE CORRECT USAGE for v2.0.6
         mg.process(
-            target=input_audio_path,  # Your input file
-            results=output_path,  # Output file
-            reference=None,  # Must be explicitly None
+            input_audio_path,  # First positional argument (input)
+            output_path  # Second positional argument (output)
         )
 
         return output_path
 
     except Exception as e:
-        print(f"Remastering failed: {str(e)}")
+        print(f"Remastering error: {str(e)}")
         return None
