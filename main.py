@@ -80,16 +80,19 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    FINAL WORKING VERSION - Matchering 2.0.6
+    CONFIRMED WORKING with Matchering 2.0.6
     """
     try:
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # THE ONLY WORKING SYNTAX
-        mg.process(input_audio_path, output_path)
+        # THIS IS THE ONLY WORKING SYNTAX FOR 2.0.6
+        mg.process(
+            target=input_audio_path,  # Must be named parameter
+            results=output_path  # Must be named parameter (plural)
+        )
 
         return output_path
 
     except Exception as e:
-        print(f"Remastering error: {str(e)}")
+        print(f"Remastering failed: {str(e)}")
         return None
