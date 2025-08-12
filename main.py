@@ -85,20 +85,32 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    Working implementation for Matchering 2.0.6
-    Verified against actual library source code
+    DEBUGGABLE IMPLEMENTATION for Matchering 2.0.6
     """
     try:
+        print(f"Debug: Input path exists? {os.path.exists(input_audio_path)}")
+        print(f"Debug: Input file size: {os.path.getsize(input_audio_path)} bytes")
+
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
+        print(f"Debug: Output path: {output_path}")
 
-        # THE CORRECT USAGE for v2.0.6
-        mg.process(
-            input_audio_path,  # First positional argument (input)
-            output_path  # Second positional argument (output)
-        )
+        # Attempt 1: Positional arguments
+        try:
+            mg.process(input_audio_path, output_path)
+            print("Debug: Success with positional args")
+            return output_path
+        except Exception as e1:
+            print(f"Debug: Positional args failed: {str(e1)}")
 
-        return output_path
+            # Attempt 2: Named arguments
+            try:
+                mg.process(target=input_audio_path, results=output_path)
+                print("Debug: Success with named args")
+                return output_path
+            except Exception as e2:
+                print(f"Debug: Named args failed: {str(e2)}")
+                raise Exception(f"All attempts failed. PosErr: {e1}, NamedErr: {e2}")
 
     except Exception as e:
-        print(f"Remastering error: {str(e)}")
+        print(f"CRITICAL ERROR: {str(e)}")
         return None
