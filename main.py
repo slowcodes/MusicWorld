@@ -86,15 +86,15 @@ def matchering_remaster_audio(input_audio_path: str) -> str:
         # Output file path
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # Matchering 2.0.6 requires this syntax:
+        # Matchering 2.0.6 requires this exact syntax:
         mg.process(
-            target=input_audio_path,  # Correct argument name (not target_path)
-            output=output_path
+            target=input_audio_path,  # Input audio (must be WAV)
+            result=output_path        # Output file (not 'output')
         )
 
-        print(f"Remastered audio saved to: {output_path}")
+        print(f"✅ Remastered audio saved to: {output_path}")
         return output_path
 
     except Exception as e:
-        print(f"Remastering error: {str(e)}")
+        print(f"❌ Remastering error: {str(e)}")
         return None
