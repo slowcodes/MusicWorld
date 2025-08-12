@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 import shutil
 import os
@@ -40,28 +40,34 @@ async def smoot():
 
 @app.post("/upload-audio/")
 async def upload_audio(file: UploadFile = File(...)):
-
     try:
+        # Verify WAV format
+        if not file.filename.lower().endswith('.wav'):
+            raise HTTPException(400, "Only WAV files supported")
+
         # Save uploaded file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            # IMPORTANT: Need to read the file content first
+            contents = await file.read()
+            buffer.write(contents)
 
-        # Process / "Remaster" the file with pydub
-        # processed_path = await remaster_audio(file_path)
+        # Process audio
+        processed_path = matchering_remaster_audio(file_path)
 
-        # Remaster file with matchring
-        processed_path = matchering_remaster_audio(
-            file_path
-        )
         if not processed_path:
-            raise Exception("Audio remastering failed")
-        print(f"Remastered file saved at: {processed_path}")
+            raise HTTPException(500, "Audio remastering failed")
 
-        # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
-        return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+        return FileResponse(
+            processed_path,
+            media_type="audio/wav",
+            filename="remastered.wav"
+        )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(500, f"Server error: {str(e)}")
 
 
 async def remaster_audio(file_path: str) -> str:
