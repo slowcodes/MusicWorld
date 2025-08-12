@@ -10,7 +10,7 @@ import soundfile as sf
 
 from pathlib import Path
 
-from libs.pedalboard_impl import remaster_audio_with_pedalboard, pedalboard_remaster_audio
+from libs.pedalboard_impl import pedalboard_remaster_audio
 
 # from libs.matchering import matchering_remaster_audio
 
