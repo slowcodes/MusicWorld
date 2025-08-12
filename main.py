@@ -85,20 +85,44 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    CONFIRMED WORKING implementation for your specific Matchering 2.0.6 build
+    Complete implementation with full error handling
     """
     try:
+        # Create processed directory if needed
+        os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
         output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # YOUR VERSION REQUIRES 3 POSITIONAL ARGUMENTS:
-        mg.process(
-            input_audio_path,  # Input file
-            output_path,  # Output file
-            None  # Reference (can be None)
-        )
+        # Verify input file exists and is valid
+        if not os.path.exists(input_audio_path):
+            raise ValueError("Input file does not exist")
+
+        if os.path.getsize(input_audio_path) == 0:
+            raise ValueError("Input file is empty")
+
+        # Process with error context
+        try:
+            mg.process(
+                input_audio_path,  # Input file
+                output_path,  # Output file
+                None  # Reference (None for no reference)
+            )
+        except Exception as e:
+            raise RuntimeError(f"Matchering processing failed: {str(e)}")
+
+        # Verify output was created
+        if not os.path.exists(output_path):
+            raise RuntimeError("Output file was not created")
+
+        if os.path.getsize(output_path) == 0:
+            os.remove(output_path)
+            raise RuntimeError("Output file is empty")
 
         return output_path
 
     except Exception as e:
-        print(f"Remastering failed: {str(e)}")
+        print(f"Remastering error: {str(e)}")
+        # Clean up failed output file if exists
+        if 'output_path' in locals() and os.path.exists(output_path):
+            os.remove(output_path)
         return None
