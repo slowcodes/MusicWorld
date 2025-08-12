@@ -10,7 +10,9 @@ import soundfile as sf
 
 from pathlib import Path
 
-# from rematering_libs.matchering import matchering_remaster_audio
+from libs.pedalboard import remaster_audio_with_pedalboard
+
+# from libs.matchering import matchering_remaster_audio
 
 app = FastAPI()
 
@@ -30,34 +32,157 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import logging
+from pydub import AudioSegment
+import uuid
+import traceback
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("matchering_api")
 
 
-@app.get("/all-remastered")
-async def smoot():
-    return {"message": "Hello World"}
+def validate_audio_file(file_path: str) -> dict:
+    """Comprehensive audio validation with detailed checks"""
+    validation = {
+        "is_valid": False,
+        "sample_rate": None,
+        "channels": None,
+        "duration": None,
+        "subtype": None,
+        "issues": []
+    }
+
+    try:
+        with sf.SoundFile(file_path) as audio:
+            validation.update({
+                "sample_rate": audio.samplerate,
+                "channels": audio.channels,
+                "duration": len(audio) / audio.samplerate,
+                "subtype": audio.subtype
+            })
+
+            # Check requirements
+            if audio.samplerate != 44100:
+                validation["issues"].append(f"Invalid sample rate: {audio.samplerate} (needs 44100)")
+            if audio.channels != 2:
+                validation["issues"].append(f"Invalid channels: {audio.channels} (needs stereo)")
+            if audio.subtype not in ['PCM_16', 'PCM_24', 'PCM_32']:
+                validation["issues"].append(f"Unsupported format: {audio.subtype} (needs PCM)")
+            if len(audio) / audio.samplerate < 3:
+                validation["issues"].append("Audio too short (needs ≥3 seconds)")
+
+        validation["is_valid"] = len(validation["issues"]) == 0
+        return validation
+
+    except Exception as e:
+        validation["issues"].append(f"Validation error: {str(e)}")
+        return validation
+
+
+def prepare_audio(input_path: str) -> str:
+    """Convert audio to Matchering-compatible format"""
+    try:
+        # Validate first
+        validation = validate_audio_file(input_path)
+        if validation["is_valid"]:
+            return input_path
+
+        logger.info(f"Audio needs conversion: {validation['issues']}")
+
+        # Create output path
+        output_path = os.path.join(PROCESSED_FOLDER, f"prepared_{uuid.uuid4()}.wav")
+
+        # Convert using pydub
+        audio = AudioSegment.from_wav(input_path)
+
+        # Apply fixes
+        if validation["sample_rate"] != 44100:
+            audio = audio.set_frame_rate(44100)
+        if validation["channels"] != 2:
+            audio = audio.set_channels(2)
+        if validation["duration"] < 3:
+            # Pad with silence if too short
+            silence = AudioSegment.silent(duration=3000 - len(audio) + 100, frame_rate=44100)
+            audio = audio + silence
+
+        # Export with correct format
+        audio.export(
+            output_path,
+            format="wav",
+            parameters=["-ac", "2", "-ar", "44100"]
+        )
+
+        return output_path
+
+    except Exception as e:
+        logger.error(f"Audio preparation failed: {str(e)}")
+        if 'output_path' in locals() and os.path.exists(output_path):
+            os.remove(output_path)
+        return None
+
+
+def process_with_matchering(input_path: str) -> str:
+    """Core processing with enhanced error handling"""
+    output_path = os.path.join(PROCESSED_FOLDER, f"remastered_{uuid.uuid4()}.wav")
+
+    try:
+        logger.info(f"Starting processing for {input_path}")
+
+        # Process with timeout
+        try:
+            mg.process(
+                target=input_path,
+                results=output_path,
+                reference=None
+            )
+        except Exception as e:
+            raise RuntimeError(f"Matchering error: {str(e)}")
+
+        # Verify output
+        if not os.path.exists(output_path):
+            raise RuntimeError("No output file created")
+        if os.path.getsize(output_path) == 0:
+            raise RuntimeError("Empty output file")
+
+        return output_path
+
+    except Exception as e:
+        logger.error(f"Processing failed: {str(e)}")
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        raise
 
 
 @app.post("/upload-audio/")
 async def upload_audio(file: UploadFile = File(...)):
+    temp_path = None
+    prepared_path = None
+
     try:
-        # Validate extension
+        # Validate file type
         if not file.filename.lower().endswith('.wav'):
             raise HTTPException(400, "Only WAV files supported")
 
-        # Create temp file
+        # Save upload
         temp_path = os.path.join(UPLOAD_FOLDER, f"upload_{uuid.uuid4()}.wav")
         with open(temp_path, "wb") as f:
             contents = await file.read()
             f.write(contents)
 
-        # Process with enhanced validation
-        output_path = matchering_remaster_audio(temp_path)
-        if not output_path:
-            raise HTTPException(500, "Audio remastering failed")
+        # Prepare audio
+        prepared_path = prepare_audio(temp_path)
+        if not prepared_path:
+            raise HTTPException(400, "Invalid audio format")
+
+        # Process
+        # output_path = process_with_matchering(prepared_path)
+        output_path = remaster_audio_with_pedalboard(
+            prepared_path,
+            'processed/pedalboard_remastered.wav',
+            target_lufs=-12.0,
+            compression_ratio=3.0
+        )
 
         return FileResponse(
             output_path,
@@ -68,104 +193,10 @@ async def upload_audio(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"Processing error: {str(e)}")
+        logger.error(f"Unexpected error: {traceback.format_exc()}")
+        raise HTTPException(500, f"Processing failed: {str(e)}")
     finally:
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.remove(temp_path)
-
-
-async def remaster_audio(file_path: str) -> str:
-    # Load audio using pydub
-    sound = AudioSegment.from_file(file_path)
-
-    # Example "remastering": Normalize volume and reduce noise
-    normalized = sound.normalize()
-
-    # Export to wav (for now, simple remastering)
-    processed_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
-    normalized.export(processed_path, format="wav")
-
-    return processed_path
-
-
-def validate_and_fix_wav(input_path: str) -> str:
-    """Ensure the WAV meets all Matchering requirements"""
-    try:
-        # Read file metadata
-        with sf.SoundFile(input_path) as f:
-            sr = f.samplerate
-            channels = f.channels
-            subtype = f.subtype
-            duration = len(f) / sr
-
-        # Check minimum duration (Matchering needs at least 3 seconds)
-        if duration < 3:
-            raise ValueError(f"Audio too short: {duration:.1f}s (needs ≥3s)")
-
-        # Prepare output path
-        output_path = os.path.join(PROCESSED_FOLDER, f"fixed_{uuid.uuid4()}.wav")
-
-        # Only convert if needed
-        if sr == 44100 and channels == 2 and subtype == 'PCM_16':
-            return input_path
-
-        # Convert using pydub (more reliable than direct soundfile)
-        audio = AudioSegment.from_wav(input_path)
-        audio = audio.set_frame_rate(44100)
-        audio = audio.set_channels(2)
-        audio = audio.set_sample_width(2)  # 16-bit
-        audio.export(output_path, format="wav", parameters=["-ac", "2", "-ar", "44100"])
-
-        return output_path
-
-    except Exception as e:
-        print(f"Validation failed: {str(e)}")
-        if 'output_path' in locals() and os.path.exists(output_path):
-            os.remove(output_path)
-        return None
-
-
-def matchering_remaster_audio(input_audio_path: str) -> str:
-    """Robust processing with full validation"""
-    try:
-        # 1. Validate and fix if needed
-        processed_path = validate_and_fix_wav(input_audio_path)
-        if not processed_path:
-            raise ValueError("Invalid audio format")
-
-        # 2. Prepare output
-        output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
-        if os.path.exists(output_path):
-            os.remove(output_path)
-
-        # 3. Process with volume normalization
-        try:
-            # Normalize volume first if too quiet
-            audio = AudioSegment.from_wav(processed_path)
-            if audio.dBFS < -30:  # Too quiet
-                audio = audio.apply_gain(-audio.dBFS - 10)
-                normalized_path = os.path.join(PROCESSED_FOLDER, f"norm_{uuid.uuid4()}.wav")
-                audio.export(normalized_path, format="wav")
-                processed_path = normalized_path
-
-            mg.process(
-                processed_path,
-                output_path,
-                None
-            )
-        except Exception as e:
-            raise RuntimeError(f"Processing error: {str(e)}")
-
-        # 4. Validate output
-        if not os.path.exists(output_path):
-            raise RuntimeError("No output file created")
-        if os.path.getsize(output_path) == 0:
-            raise RuntimeError("Empty output file")
-
-        return output_path
-
-    finally:
-        # Clean up temporary files
-        for path in [processed_path, normalized_path] if 'processed_path' in locals() else []:
-            if path and path != input_audio_path and os.path.exists(path):
+        # Cleanup
+        for path in [temp_path, prepared_path]:
+            if path and os.path.exists(path):
                 os.remove(path)
