@@ -80,32 +80,20 @@ async def remaster_audio(file_path: str) -> str:
 
 def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    Synchronous function to remaster audio using matchering
-
-    Args:
-        input_audio_path: Path to input audio file
-
-    Returns:
-        Path to remastered audio file
+    Correctly remasters audio using Matchering 2.0.6
     """
     try:
-        # Convert to absolute paths
-        input_path = Path(input_audio_path).absolute()
-        output_path = Path(PROCESSED_FOLDER) / "remastered.wav"
+        # Output file path
+        output_path = os.path.join(PROCESSED_FOLDER, "remastered.wav")
 
-        # Verify input exists
-        if not input_path.exists():
-            raise FileNotFoundError(f"Input file not found: {input_path}")
-
-        # Process with matchering
-        target = mg.load(target_path=str(input_path))
+        # Matchering 2.0.6 requires this syntax:
         mg.process(
-            target=target,
-            output=str(output_path)
+            target=input_audio_path,  # Correct argument name (not target_path)
+            output=output_path
         )
 
         print(f"Remastered audio saved to: {output_path}")
-        return str(output_path)
+        return output_path
 
     except Exception as e:
         print(f"Remastering error: {str(e)}")
