@@ -27,18 +27,18 @@ def pedalboard_remaster_audio(input_path: Path, output_path: Path) -> bool:
 
         # Create effects chain
         board = Pedalboard([
-            HighpassFilter(80.0),  # Remove low-end rumble
-            LowpassFilter(15000.0),  # Reduce high-frequency harshness
+            HighpassFilter(cutoff_frequency_hz=80.0),
+            LowpassFilter(cutoff_frequency_hz=15000.0),
             Compressor(
                 threshold_db=-20.0,
                 ratio=4.0,
                 attack_ms=5.0,
                 release_ms=100.0
             ),
-            Gain(gain_db=2.0),  # Make-up gain
-            Reverb(room_size=0.25, wet_level=0.15),  # Add subtle space
-            Limiter(threshold_db=-14.0)  # Final loudness control
-        ], sample_rate=sample_rate)
+            Gain(gain_db=2.0),
+            Reverb(room_size=0.25, wet_level=0.15),
+            Limiter(threshold_db=-14.0)
+        ])
 
         # Process audio
         processed = board(audio, sample_rate)
