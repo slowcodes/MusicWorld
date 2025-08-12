@@ -5,6 +5,8 @@ import os
 from pydub import AudioSegment
 from starlette.middleware.cors import CORSMiddleware
 import matchering as mg
+from pathlib import Path
+
 # from rematering_libs.matchering import matchering_remaster_audio
 
 app = FastAPI()
@@ -38,22 +40,28 @@ async def smoot():
 
 @app.post("/upload-audio/")
 async def upload_audio(file: UploadFile = File(...)):
-    # Save uploaded file
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
 
-    # Process / "Remaster" the file with pydub
-    # processed_path = await remaster_audio(file_path)
+    try:
+        # Save uploaded file
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    # Remaster file with matchring
-    processed_path = matchering_remaster_audio(
-        file_path
-    )
-    print(f"Remastered file saved at: {processed_path}")
+        # Process / "Remaster" the file with pydub
+        # processed_path = await remaster_audio(file_path)
 
-    # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
-    return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+        # Remaster file with matchring
+        processed_path = matchering_remaster_audio(
+            file_path
+        )
+        if not processed_path:
+            raise Exception("Audio remastering failed")
+        print(f"Remastered file saved at: {processed_path}")
+
+        # return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+        return FileResponse(processed_path, media_type="audio/wav", filename="remastered.wav")
+    except Exception as e:
+        return {"error": str(e)}
 
 
 async def remaster_audio(file_path: str) -> str:
@@ -70,36 +78,35 @@ async def remaster_audio(file_path: str) -> str:
     return processed_path
 
 
-async def matchering_remaster_audio(input_audio_path):
+def matchering_remaster_audio(input_audio_path: str) -> str:
     """
-    Remasters an audio file using matchering library v2.0.6.
+    Synchronous function to remaster audio using matchering
 
     Args:
-        input_audio_path (str): Path to the input audio file to be remastered.
+        input_audio_path: Path to input audio file
 
     Returns:
-        str: Path to the remastered audio file if successful, None otherwise.
+        Path to remastered audio file
     """
-    # Create processed directory if it doesn't exist
-    processed_dir = "processed"
-    os.makedirs(processed_dir, exist_ok=True)
-
-    # Output file path
-    output_path = os.path.join(processed_dir, "remastered.wav")
-
     try:
-        # Load the target (input) audio
-        target = mg.load(target_path=input_audio_path)
+        # Convert to absolute paths
+        input_path = Path(input_audio_path).absolute()
+        output_path = Path(PROCESSED_FOLDER) / "remastered.wav"
 
-        # Process the audio (basic remastering with default settings)
+        # Verify input exists
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+
+        # Process with matchering
+        target = mg.load(target_path=str(input_path))
         mg.process(
             target=target,
-            output=output_path
+            output=str(output_path)
         )
 
-        print(f"Audio successfully remastered and saved to: {output_path}")
-        return output_path
+        print(f"Remastered audio saved to: {output_path}")
+        return str(output_path)
 
     except Exception as e:
-        print(f"Error during audio remastering: {str(e)}")
+        print(f"Remastering error: {str(e)}")
         return None
