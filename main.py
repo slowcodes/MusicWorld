@@ -95,7 +95,7 @@ async def upload_and_remaster(file: UploadFile = File(...), tool: str = Form(...
         return FileResponse(
             output_path,
             media_type="audio/wav",
-            filename=output_path
+            filename=output_path.name.lower()
         )
 
     except HTTPException:
