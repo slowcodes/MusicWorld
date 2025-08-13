@@ -63,16 +63,30 @@ async def upload_and_remaster(file: UploadFile = File(...), tool: str = Form(...
             buffer.write(contents)
 
         # Process audio
-        # success = pedalboard_remaster_audio(upload_path, output_path)
+        if tool == "Pedalboard":
+            success = pedalboard_remaster_audio(upload_path, output_path)
+            logger.info(f"Remastering completed with Pedalboard: {success}")
+        elif tool == "Pydub":
+            success = remaster_audio_with_pydub(
+                upload_path,
+                output_path,
+                target_loudness=-12.0,  # Slightly louder than streaming standard
+                compression_ratio=3.0,  # More transparent compression
+                highpass_cutoff=60,  # Less aggressive low-end cut
+                reverb_dryness=0.9  # Very subtle reverb
+            )
+            logger.info(f"Remastering completed with Pydub: {success}")
+        elif tool == "Matchering":
+            # Using matchering for remastering
+            success = mg.process(
+                target=str(upload_path),
+                reference=str(upload_path),  # Use the same file as reference
+                output=str(output_path)
+            )
+            logger.info(f"Remastering completed with Matchering: {success}")
+        else:
+            raise HTTPException(400, "Unsupported remastering tool specified")
 
-        success = remaster_audio_with_pydub(
-            upload_path,
-            output_path,
-            target_loudness=-12.0,  # Slightly louder than streaming standard
-            compression_ratio=3.0,  # More transparent compression
-            highpass_cutoff=60,  # Less aggressive low-end cut
-            reverb_dryness=0.9  # Very subtle reverb
-        )
         if not success:
             raise HTTPException(500, "Audio remastering failed")
 
