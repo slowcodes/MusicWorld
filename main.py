@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import FileResponse
 import shutil
 import os
@@ -42,11 +42,11 @@ logger = logging.getLogger("matchering_api")
 
 
 @app.post("/remaster-audio/")
-async def upload_and_remaster(file: UploadFile = File(...)):
+async def upload_and_remaster(file: UploadFile = File(...), tool: str = Form(...)):
     """Endpoint that handles file upload and remastering"""
     upload_path = None
     output_path = None
-
+    logger.info(f"Received file: {file.filename} using tool: {tool}")
     try:
         # Validate file type
         if not file.filename.lower().endswith('.wav'):
