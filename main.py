@@ -91,10 +91,11 @@ async def upload_and_remaster(file: UploadFile = File(...), tool: str = Form(...
             raise HTTPException(500, "Audio remastering failed")
 
         # Return the processed file
+        logger.info(f"Returning remastered file: {output_path}")
         return FileResponse(
             output_path,
             media_type="audio/wav",
-            filename=output_path.name
+            filename=output_path
         )
 
     except HTTPException:
